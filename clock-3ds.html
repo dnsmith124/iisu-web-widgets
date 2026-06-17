@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DS Clock Widget</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            padding: 3px;
+            background-color: #d4d8e0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='1.5' y='1.5' width='13' height='13' rx='3' fill='%23dce0e8'/%3E%3Crect x='2' y='2' width='12' height='12' rx='2.5' fill='none' stroke='%23c8ccd4' stroke-width='0.5'/%3E%3C/svg%3E");
+        }
+
+        .clock-tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #ffffff 0%, #f3f4f7 100%);
+            border-radius: 14px;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.10),
+                0 1px 2px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .clock-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(10px, 4vw, 20px);
+            padding: 4px clamp(6px, 2.5vw, 12px);
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            container-type: inline-size;
+        }
+
+        .clock-tile:active {
+            background: linear-gradient(180deg, #f6f7fa 0%, #ecedf1 100%);
+        }
+
+        .time-row {
+            display: flex;
+            align-items: baseline;
+            flex-shrink: 0;
+        }
+
+        .time-digits {
+            font-size: clamp(40px, 14vw, 72px);
+            font-weight: 900;
+            color: #1a237e;
+            line-height: 1;
+        }
+
+        .time-colon {
+            font-size: clamp(36px, 12vw, 64px);
+            font-weight: 900;
+            color: #1a237e;
+            margin: 0 1px;
+            line-height: 1;
+            animation: blink 1s steps(1) infinite;
+        }
+
+        @keyframes blink {
+            0%, 49.9% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .time-period {
+            font-size: clamp(14px, 4.5vw, 22px);
+            font-weight: 800;
+            color: #4fc3f7;
+            margin-left: clamp(3px, 1vw, 6px);
+            align-self: flex-end;
+            padding-bottom: clamp(2px, 0.8vw, 5px);
+        }
+
+        .accent-bar {
+            width: 3px;
+            height: clamp(30px, 8vw, 44px);
+            background: linear-gradient(180deg, #4fc3f7, #2196f3);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .date-group {
+            display: flex;
+            align-items: center;
+            gap: clamp(10px, 4vw, 20px);
+        }
+
+        .date-block {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-width: 0;
+        }
+
+        @container (max-width: 240px) {
+            .date-group { display: none; }
+        }
+
+        .day-name {
+            font-size: clamp(18px, 5.5vw, 28px);
+            font-weight: 700;
+            color: #2196f3;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .date-text {
+            font-size: clamp(14px, 4vw, 20px);
+            font-weight: 600;
+            color: #8890a4;
+            line-height: 1.2;
+        }
+
+        .seconds-track {
+            width: 100%;
+            height: 5px;
+            background: #dde1e9;
+            border-radius: 0 0 14px 14px;
+            flex-shrink: 0;
+        }
+
+        .seconds-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4fc3f7, #2196f3);
+            border-radius: 0 0 14px 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-tile" id="tile">
+        <div class="clock-content">
+            <div class="time-row">
+                <span id="hours" class="time-digits">12</span>
+                <span class="time-colon">:</span>
+                <span id="minutes" class="time-digits">00</span>
+                <span id="period" class="time-period">AM</span>
+            </div>
+            <div class="date-group">
+                <div class="accent-bar"></div>
+                <div class="date-block">
+                    <div id="day" class="day-name">Monday</div>
+                    <div id="date" class="date-text">01/01</div>
+                </div>
+            </div>
+        </div>
+        <div class="seconds-track">
+            <div id="sec-fill" class="seconds-fill"></div>
+        </div>
+    </div>
+
+    <script>
+        let use24h = localStorage.getItem('clock-24h') === 'true';
+
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const periodEl = document.getElementById('period');
+        const dayEl = document.getElementById('day');
+        const dateEl = document.getElementById('date');
+        const secFillEl = document.getElementById('sec-fill');
+
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        function update() {
+            const now = new Date();
+            let h = now.getHours();
+            const m = now.getMinutes();
+            const s = now.getSeconds();
+
+            if (use24h) {
+                periodEl.style.display = 'none';
+                hoursEl.textContent = String(h).padStart(2, '0');
+            } else {
+                periodEl.style.display = '';
+                periodEl.textContent = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                hoursEl.textContent = String(h);
+            }
+
+            minutesEl.textContent = String(m).padStart(2, '0');
+            dayEl.textContent = dayNames[now.getDay()];
+            dateEl.textContent =
+                String(now.getMonth() + 1).padStart(2, '0') + '/' +
+                String(now.getDate()).padStart(2, '0');
+
+            const pct = (s / 60) * 100;
+            secFillEl.style.transition = s === 0 ? 'none' : 'width 1s linear';
+            secFillEl.style.width = pct + '%';
+        }
+
+        document.getElementById('tile').addEventListener('click', () => {
+            use24h = !use24h;
+            localStorage.setItem('clock-24h', use24h);
+            update();
+        });
+
+        update();
+        setInterval(update, 1000);
+    </script>
+</body>
+</html>
