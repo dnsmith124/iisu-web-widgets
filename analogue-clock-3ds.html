@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DS Analogue Clock Widget</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            padding: 2%;
+            background-color: #d4d8e0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='1.5' y='1.5' width='13' height='13' rx='3' fill='%23dce0e8'/%3E%3Crect x='2' y='2' width='12' height='12' rx='2.5' fill='none' stroke='%23c8ccd4' stroke-width='0.5'/%3E%3C/svg%3E");
+        }
+
+        .clock-tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #ffffff 0%, #f3f4f7 100%);
+            border-radius: 4vmin;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.10),
+                0 1px 2px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .clock-content {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5%;
+        }
+
+        .clock-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transform-origin: center center;
+        }
+
+        .clock-tile:active {
+            background: linear-gradient(180deg, #f6f7fa 0%, #ecedf1 100%);
+        }
+
+        .analogue-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .clock-face {
+            width: 160px;
+            height: 160px;
+            display: block;
+        }
+
+        .face-bg {
+            fill: url(#face-gradient);
+            stroke: rgba(0, 0, 0, 0.06);
+            stroke-width: 1;
+        }
+
+        .tick-major {
+            stroke: #1a237e;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+        }
+
+        .tick-minor {
+            stroke: #8890a4;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            opacity: 0.55;
+        }
+
+        .hour-num {
+            font-family: 'Nunito', sans-serif;
+            font-size: 16px;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+            fill: #1565c0;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        #numbers {
+            visibility: hidden;
+        }
+
+        #numbers.visible {
+            visibility: visible;
+        }
+
+        .hand {
+            transform-origin: 100px 100px;
+            transition: transform 1s linear;
+        }
+
+        .hand-hour {
+            stroke: #1a237e;
+            stroke-width: 5;
+            stroke-linecap: round;
+        }
+
+        .hand-minute {
+            stroke: #1a237e;
+            stroke-width: 3.5;
+            stroke-linecap: round;
+        }
+
+        .hand-second {
+            stroke: #4fc3f7;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            transition: transform 1s linear;
+        }
+
+        .center-cap {
+            fill: #2196f3;
+            stroke: #ffffff;
+            stroke-width: 2;
+        }
+
+        .center-cap-inner {
+            fill: #1a237e;
+        }
+
+        .accent-bar {
+            height: 3px;
+            width: 80%;
+            background: linear-gradient(90deg, #4fc3f7, #2196f3);
+            border-radius: 2px;
+        }
+
+        .date-group {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .date-group.visible {
+            display: flex;
+        }
+
+        .date-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .day-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2196f3;
+            line-height: 1.2;
+        }
+
+        .date-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #8890a4;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-tile" id="tile">
+        <div class="clock-content">
+            <div class="clock-inner" id="clock-inner">
+                <div class="analogue-group">
+                    <svg class="clock-face" viewBox="0 0 200 200" aria-hidden="true">
+                        <defs>
+                            <radialGradient id="face-gradient" cx="38%" cy="32%" r="68%">
+                                <stop offset="0%" stop-color="#ffffff"/>
+                                <stop offset="100%" stop-color="#eef0f5"/>
+                            </radialGradient>
+                        </defs>
+
+                        <circle class="face-bg" cx="100" cy="100" r="92"/>
+
+                        <g id="ticks"></g>
+                        <g id="numbers"></g>
+
+                        <line id="hand-hour" class="hand hand-hour" x1="100" y1="100" x2="100" y2="58"/>
+                        <line id="hand-minute" class="hand hand-minute" x1="100" y1="100" x2="100" y2="42"/>
+                        <line id="hand-second" class="hand hand-second" x1="100" y1="108" x2="100" y2="34"/>
+
+                        <circle class="center-cap" cx="100" cy="100" r="6"/>
+                        <circle class="center-cap-inner" cx="100" cy="100" r="2.5"/>
+                    </svg>
+                </div>
+                <div class="date-group" id="date-group">
+                    <div class="accent-bar"></div>
+                    <div class="date-block">
+                        <span id="day" class="day-name">Tue</span>
+                        <span id="date" class="date-text">01/01</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let showNumbers = localStorage.getItem('analogue-clock-show-numbers') === 'true';
+
+        const dayEl = document.getElementById('day');
+        const dateEl = document.getElementById('date');
+        const innerEl = document.getElementById('clock-inner');
+        const contentEl = document.querySelector('.clock-content');
+        const handHourEl = document.getElementById('hand-hour');
+        const handMinuteEl = document.getElementById('hand-minute');
+        const handSecondEl = document.getElementById('hand-second');
+        const ticksEl = document.getElementById('ticks');
+        const numbersEl = document.getElementById('numbers');
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const CX = 100;
+        const CY = 100;
+        const TICK_INNER_RADIUS = 76;
+        const NUMBER_TICK_GAP = 4;
+
+        function distPointToRect(px, py, bbox) {
+            const dx = Math.max(bbox.x - px, 0, px - (bbox.x + bbox.width));
+            const dy = Math.max(bbox.y - py, 0, py - (bbox.y + bbox.height));
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function measureSlotWidth(ns) {
+            let maxWidth = 0;
+            for (let h = 1; h <= 12; h++) {
+                const probe = document.createElementNS(ns, 'text');
+                probe.setAttribute('class', 'hour-num');
+                probe.setAttribute('x', '0');
+                probe.setAttribute('y', '0');
+                probe.textContent = String(h);
+                numbersEl.appendChild(probe);
+                maxWidth = Math.max(maxWidth, probe.getBBox().width);
+                numbersEl.removeChild(probe);
+            }
+            return maxWidth;
+        }
+
+        function placeNumber(text, cosR, sinR, slotWidth) {
+            text.setAttribute('textLength', String(slotWidth));
+            text.setAttribute('lengthAdjust', 'spacing');
+
+            const tickX = CX + cosR * TICK_INNER_RADIUS;
+            const tickY = CY + sinR * TICK_INNER_RADIUS;
+            let lo = 30;
+            let hi = TICK_INNER_RADIUS - 1;
+
+            for (let i = 0; i < 24; i++) {
+                const mid = (lo + hi) / 2;
+                text.setAttribute('x', String(CX + cosR * mid));
+                text.setAttribute('y', String(CY + sinR * mid));
+                const dist = distPointToRect(tickX, tickY, text.getBBox());
+                if (dist > NUMBER_TICK_GAP) {
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
+            }
+
+            const radius = (lo + hi) / 2;
+            text.setAttribute('x', String(CX + cosR * radius));
+            text.setAttribute('y', String(CY + sinR * radius));
+        }
+
+        function buildFace() {
+            const ns = 'http://www.w3.org/2000/svg';
+
+            for (let i = 0; i < 60; i++) {
+                const angle = (i / 60) * 360 - 90;
+                const rad = angle * Math.PI / 180;
+                const isMajor = i % 5 === 0;
+                const outer = 88;
+                const inner = isMajor ? TICK_INNER_RADIUS : 82;
+
+                const line = document.createElementNS(ns, 'line');
+                line.setAttribute('class', isMajor ? 'tick-major' : 'tick-minor');
+                line.setAttribute('x1', CX + Math.cos(rad) * inner);
+                line.setAttribute('y1', CY + Math.sin(rad) * inner);
+                line.setAttribute('x2', CX + Math.cos(rad) * outer);
+                line.setAttribute('y2', CY + Math.sin(rad) * outer);
+                ticksEl.appendChild(line);
+            }
+
+            const slotWidth = measureSlotWidth(ns);
+
+            for (let h = 1; h <= 12; h++) {
+                const angle = (h / 12) * 360 - 90;
+                const rad = angle * Math.PI / 180;
+                const cosR = Math.cos(rad);
+                const sinR = Math.sin(rad);
+
+                const text = document.createElementNS(ns, 'text');
+                text.setAttribute('class', 'hour-num');
+                text.textContent = String(h);
+                numbersEl.appendChild(text);
+                placeNumber(text, cosR, sinR, slotWidth);
+            }
+        }
+
+        function setHandRotation(el, degrees, smooth) {
+            el.style.transition = smooth ? 'transform 1s linear' : 'none';
+            el.style.transform = 'rotate(' + degrees + 'deg)';
+        }
+
+        function rescale() {
+            innerEl.style.transform = 'scale(1)';
+            const cw = contentEl.clientWidth;
+            const ch = contentEl.clientHeight;
+            const iw = innerEl.offsetWidth;
+            const ih = innerEl.offsetHeight;
+            const scale = Math.min(cw / iw, ch / ih);
+            innerEl.style.transform = 'scale(' + scale + ')';
+        }
+
+        function setNumbersVisible(visible) {
+            numbersEl.classList.toggle('visible', visible);
+        }
+
+        function update() {
+            const now = new Date();
+            const h24 = now.getHours();
+            const m = now.getMinutes();
+            const s = now.getSeconds();
+
+            const hourDeg = ((h24 % 12) + m / 60 + s / 3600) * 30;
+            const minuteDeg = (m + s / 60) * 6;
+            const secondDeg = s * 6;
+
+            setHandRotation(handHourEl, hourDeg, true);
+            setHandRotation(handMinuteEl, minuteDeg, true);
+            setHandRotation(handSecondEl, secondDeg, s !== 0);
+
+            dayEl.textContent = dayNames[now.getDay()];
+            dateEl.textContent =
+                String(now.getMonth() + 1).padStart(2, '0') + '/' +
+                String(now.getDate()).padStart(2, '0');
+        }
+
+        document.getElementById('tile').addEventListener('click', () => {
+            showNumbers = !showNumbers;
+            localStorage.setItem('analogue-clock-show-numbers', showNumbers);
+            setNumbersVisible(showNumbers);
+            rescale();
+        });
+
+        document.fonts.ready.then(() => {
+            buildFace();
+            setNumbersVisible(showNumbers);
+            rescale();
+        });
+        new ResizeObserver(rescale).observe(contentEl);
+        update();
+        setInterval(update, 1000);
+    </script>
+</body>
+</html>
