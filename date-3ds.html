@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DS Date Widget</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            padding: 2%;
+            background-color: #d4d8e0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='1.5' y='1.5' width='13' height='13' rx='3' fill='%23dce0e8'/%3E%3Crect x='2' y='2' width='12' height='12' rx='2.5' fill='none' stroke='%23c8ccd4' stroke-width='0.5'/%3E%3C/svg%3E");
+        }
+
+        .date-tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #ffffff 0%, #f3f4f7 100%);
+            border-radius: 4vmin;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.10),
+                0 1px 2px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .date-tile:active {
+            background: linear-gradient(180deg, #f6f7fa 0%, #ecedf1 100%);
+        }
+
+        .date-content {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8% 14%;
+        }
+
+        .date-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transform-origin: center center;
+            white-space: nowrap;
+        }
+
+        .accent-bar {
+            height: 3px;
+            width: 80%;
+            background: linear-gradient(90deg, #4fc3f7, #2196f3);
+            border-radius: 2px;
+        }
+
+        .accent-bar.hidden,
+        .day-name.hidden {
+            display: none;
+        }
+
+        .date-block {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .day-name {
+            font-size: 48px;
+            font-weight: 800;
+            color: #2196f3;
+            line-height: 1.2;
+        }
+
+        .date-text {
+            font-size: 42px;
+            font-weight: 700;
+            color: #8890a4;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="date-tile" id="tile">
+        <div class="date-content">
+            <div class="date-inner" id="date-inner">
+                <div class="accent-bar" id="accent-bar"></div>
+                <div class="date-block">
+                    <span id="day" class="day-name">Tue</span>
+                    <span id="date" class="date-text">01/01</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 0: day+date+bar, 1: day+date, 2: date+bar, 3: date
+        let mode = parseInt(localStorage.getItem('date-3ds-mode'), 10);
+        if (isNaN(mode) || mode < 0 || mode > 3) mode = 0;
+
+        const dayEl = document.getElementById('day');
+        const dateEl = document.getElementById('date');
+        const accentEl = document.getElementById('accent-bar');
+        const innerEl = document.getElementById('date-inner');
+        const contentEl = document.querySelector('.date-content');
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        function applyMode() {
+            const showDay = mode === 0 || mode === 1;
+            const showBar = mode === 0 || mode === 2;
+            dayEl.classList.toggle('hidden', !showDay);
+            accentEl.classList.toggle('hidden', !showBar);
+        }
+
+        function rescale() {
+            innerEl.style.transform = 'scale(1)';
+            const cw = contentEl.clientWidth;
+            const ch = contentEl.clientHeight;
+            const iw = innerEl.offsetWidth;
+            const ih = innerEl.offsetHeight;
+            if (!iw || !ih) return;
+            // Fit inside the padded content box; 0.98 leaves a hair of room
+            // so glyph metrics can't clip against overflow:hidden.
+            const scale = Math.min(cw / iw, ch / ih) * 0.98;
+            innerEl.style.transform = 'scale(' + scale + ')';
+        }
+
+        function update() {
+            const now = new Date();
+            dayEl.textContent = dayNames[now.getDay()];
+            dateEl.textContent =
+                String(now.getMonth() + 1).padStart(2, '0') + '/' +
+                String(now.getDate()).padStart(2, '0');
+        }
+
+        document.getElementById('tile').addEventListener('click', () => {
+            mode = (mode + 1) % 4;
+            localStorage.setItem('date-3ds-mode', mode);
+            applyMode();
+            rescale();
+        });
+
+        applyMode();
+        update();
+        new ResizeObserver(rescale).observe(contentEl);
+        // Rescale after Nunito loads — early measure uses a fallback font and
+        // over-scales, which eats the side padding and clips the text.
+        document.fonts.ready.then(rescale);
+        setInterval(update, 1000);
+    </script>
+</body>
+</html>
