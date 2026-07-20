@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DS Date + Clock Widget</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            padding: 2%;
+            background-color: #d4d8e0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect x='1.5' y='1.5' width='13' height='13' rx='3' fill='%23dce0e8'/%3E%3Crect x='2' y='2' width='12' height='12' rx='2.5' fill='none' stroke='%23c8ccd4' stroke-width='0.5'/%3E%3C/svg%3E");
+        }
+
+        .tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #ffffff 0%, #f3f4f7 100%);
+            border-radius: 4vmin;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.10),
+                0 1px 2px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .tile:active {
+            background: linear-gradient(180deg, #f6f7fa 0%, #ecedf1 100%);
+        }
+
+        .content {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: stretch;
+            padding: 4% 3%;
+        }
+
+        .layout {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 2%;
+        }
+
+        .layout.date-right {
+            flex-direction: row-reverse;
+        }
+
+        .panel {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-origin: center center;
+            white-space: nowrap;
+        }
+
+        .date-inner {
+            gap: 8px;
+        }
+
+        .accent-bar {
+            height: 3px;
+            width: 80%;
+            background: linear-gradient(90deg, #4fc3f7, #2196f3);
+            border-radius: 2px;
+        }
+
+        .date-block {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .day-name {
+            font-size: 40px;
+            font-weight: 800;
+            color: #2196f3;
+            line-height: 1.2;
+        }
+
+        .date-text {
+            font-size: 34px;
+            font-weight: 700;
+            color: #8890a4;
+            line-height: 1.2;
+        }
+
+        .analogue-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .analogue-group.hidden,
+        .digital-group.hidden {
+            display: none;
+        }
+
+        .clock-face {
+            width: 160px;
+            height: 160px;
+            display: block;
+        }
+
+        .face-bg {
+            fill: url(#face-gradient);
+            stroke: rgba(0, 0, 0, 0.06);
+            stroke-width: 1;
+        }
+
+        .tick-major {
+            stroke: #1a237e;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+        }
+
+        .tick-minor {
+            stroke: #8890a4;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            opacity: 0.55;
+        }
+
+        .hand {
+            transform-origin: 100px 100px;
+            transition: transform 1s linear;
+        }
+
+        .hand-hour {
+            stroke: #1a237e;
+            stroke-width: 5;
+            stroke-linecap: round;
+        }
+
+        .hand-minute {
+            stroke: #1a237e;
+            stroke-width: 3.5;
+            stroke-linecap: round;
+        }
+
+        .hand-second {
+            stroke: #4fc3f7;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            transition: transform 1s linear;
+        }
+
+        .center-cap {
+            fill: #2196f3;
+            stroke: #ffffff;
+            stroke-width: 2;
+        }
+
+        .center-cap-inner {
+            fill: #1a237e;
+        }
+
+        .digital-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .time-digits {
+            font-size: 56px;
+            font-weight: 900;
+            color: #1a237e;
+            line-height: 1;
+        }
+
+        .time-colon {
+            font-size: 48px;
+            font-weight: 900;
+            color: #1a237e;
+            margin: 0 1px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            animation: blink 1s steps(1) infinite;
+        }
+
+        @keyframes blink {
+            0%, 49.9% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .time-period {
+            font-size: 18px;
+            font-weight: 800;
+            color: #4fc3f7;
+            margin-left: 3px;
+            align-self: flex-end;
+            padding-bottom: 2px;
+        }
+
+        .seconds-track {
+            width: 100%;
+            height: 1.5vmin;
+            background: #dde1e9;
+            border-radius: 0 0 4vmin 4vmin;
+            flex-shrink: 0;
+        }
+
+        .seconds-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4fc3f7, #2196f3);
+            border-radius: 0 0 4vmin 4vmin;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tile" id="tile">
+        <div class="content">
+            <div class="layout" id="layout">
+                <div class="panel" id="date-panel">
+                    <div class="panel-inner date-inner" id="date-inner">
+                        <div class="accent-bar"></div>
+                        <div class="date-block">
+                            <span id="day" class="day-name">Tue</span>
+                            <span id="date" class="date-text">01/01</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" id="clock-panel">
+                    <div class="panel-inner" id="clock-inner">
+                        <div class="analogue-group" id="analogue-group">
+                            <svg class="clock-face" viewBox="0 0 200 200" aria-hidden="true">
+                                <defs>
+                                    <radialGradient id="face-gradient" cx="38%" cy="32%" r="68%">
+                                        <stop offset="0%" stop-color="#ffffff"/>
+                                        <stop offset="100%" stop-color="#eef0f5"/>
+                                    </radialGradient>
+                                </defs>
+
+                                <circle class="face-bg" cx="100" cy="100" r="92"/>
+
+                                <g id="ticks"></g>
+
+                                <line id="hand-hour" class="hand hand-hour" x1="100" y1="100" x2="100" y2="58"/>
+                                <line id="hand-minute" class="hand hand-minute" x1="100" y1="100" x2="100" y2="42"/>
+                                <line id="hand-second" class="hand hand-second" x1="100" y1="108" x2="100" y2="34"/>
+
+                                <circle class="center-cap" cx="100" cy="100" r="6"/>
+                                <circle class="center-cap-inner" cx="100" cy="100" r="2.5"/>
+                            </svg>
+                        </div>
+                        <div class="digital-group hidden" id="digital-group">
+                            <div class="time-row">
+                                <span id="hours" class="time-digits">12</span>
+                                <span class="time-colon">:</span>
+                                <span id="minutes" class="time-digits">00</span>
+                                <span id="period" class="time-period">AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="seconds-track">
+            <div id="sec-fill" class="seconds-fill"></div>
+        </div>
+    </div>
+
+    <script>
+        // 0: date left + analogue, 1: date left + digital,
+        // 2: date right + analogue, 3: date right + digital
+        let mode = parseInt(localStorage.getItem('date-clock-3ds-mode'), 10);
+        if (isNaN(mode) || mode < 0 || mode > 3) mode = 0;
+
+        const layoutEl = document.getElementById('layout');
+        const datePanelEl = document.getElementById('date-panel');
+        const clockPanelEl = document.getElementById('clock-panel');
+        const dateInnerEl = document.getElementById('date-inner');
+        const clockInnerEl = document.getElementById('clock-inner');
+        const analogueGroupEl = document.getElementById('analogue-group');
+        const digitalGroupEl = document.getElementById('digital-group');
+        const dayEl = document.getElementById('day');
+        const dateEl = document.getElementById('date');
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const periodEl = document.getElementById('period');
+        const secFillEl = document.getElementById('sec-fill');
+        const handHourEl = document.getElementById('hand-hour');
+        const handMinuteEl = document.getElementById('hand-minute');
+        const handSecondEl = document.getElementById('hand-second');
+        const ticksEl = document.getElementById('ticks');
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const CX = 100;
+        const CY = 100;
+        const TICK_INNER_RADIUS = 76;
+
+        function buildFace() {
+            const ns = 'http://www.w3.org/2000/svg';
+
+            for (let i = 0; i < 60; i++) {
+                const angle = (i / 60) * 360 - 90;
+                const rad = angle * Math.PI / 180;
+                const isMajor = i % 5 === 0;
+                const outer = 88;
+                const inner = isMajor ? TICK_INNER_RADIUS : 82;
+
+                const line = document.createElementNS(ns, 'line');
+                line.setAttribute('class', isMajor ? 'tick-major' : 'tick-minor');
+                line.setAttribute('x1', CX + Math.cos(rad) * inner);
+                line.setAttribute('y1', CY + Math.sin(rad) * inner);
+                line.setAttribute('x2', CX + Math.cos(rad) * outer);
+                line.setAttribute('y2', CY + Math.sin(rad) * outer);
+                ticksEl.appendChild(line);
+            }
+        }
+
+        function setHandRotation(el, degrees, smooth) {
+            el.style.transition = smooth ? 'transform 1s linear' : 'none';
+            el.style.transform = 'rotate(' + degrees + 'deg)';
+        }
+
+        function rescalePanel(panelEl, innerEl) {
+            innerEl.style.transform = 'scale(1)';
+            const cw = panelEl.clientWidth;
+            const ch = panelEl.clientHeight;
+            const iw = innerEl.offsetWidth;
+            const ih = innerEl.offsetHeight;
+            if (!iw || !ih) return;
+            const scale = Math.min(cw / iw, ch / ih) * 0.98;
+            innerEl.style.transform = 'scale(' + scale + ')';
+        }
+
+        function rescale() {
+            rescalePanel(datePanelEl, dateInnerEl);
+            rescalePanel(clockPanelEl, clockInnerEl);
+        }
+
+        function applyMode() {
+            const dateRight = mode === 2 || mode === 3;
+            const digital = mode === 1 || mode === 3;
+
+            layoutEl.classList.toggle('date-right', dateRight);
+            analogueGroupEl.classList.toggle('hidden', digital);
+            digitalGroupEl.classList.toggle('hidden', !digital);
+        }
+
+        function update() {
+            const now = new Date();
+            const h24 = now.getHours();
+            const m = now.getMinutes();
+            const s = now.getSeconds();
+
+            dayEl.textContent = dayNames[now.getDay()];
+            dateEl.textContent =
+                String(now.getMonth() + 1).padStart(2, '0') + '/' +
+                String(now.getDate()).padStart(2, '0');
+
+            const hourDeg = ((h24 % 12) + m / 60 + s / 3600) * 30;
+            const minuteDeg = (m + s / 60) * 6;
+            const secondDeg = s * 6;
+
+            setHandRotation(handHourEl, hourDeg, true);
+            setHandRotation(handMinuteEl, minuteDeg, true);
+            setHandRotation(handSecondEl, secondDeg, s !== 0);
+
+            periodEl.style.display = '';
+            periodEl.textContent = h24 >= 12 ? 'PM' : 'AM';
+            hoursEl.textContent = String(h24 % 12 || 12);
+            minutesEl.textContent = String(m).padStart(2, '0');
+
+            const pct = (s / 60) * 100;
+            secFillEl.style.transition = s === 0 ? 'none' : 'width 1s linear';
+            secFillEl.style.width = pct + '%';
+        }
+
+        document.getElementById('tile').addEventListener('click', () => {
+            mode = (mode + 1) % 4;
+            localStorage.setItem('date-clock-3ds-mode', mode);
+            applyMode();
+            rescale();
+        });
+
+        buildFace();
+        applyMode();
+        update();
+        new ResizeObserver(rescale).observe(document.querySelector('.content'));
+        document.fonts.ready.then(rescale);
+        setInterval(update, 1000);
+    </script>
+</body>
+</html>
